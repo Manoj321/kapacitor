@@ -60,6 +60,7 @@ kapacitor define-handler system aggregate_by_1m.yaml
 - [#1286](https://github.com/influxdata/kapacitor/issues/1286): Default HipChat URL should be blank
 - [#507](https://github.com/influxdata/kapacitor/issues/507): Add API endpoint for performing Kapacitor database backups.
 - [#1132](https://github.com/influxdata/kapacitor/issues/1132): Adding source for sensu alert as parameter
+- [#117](https://github.com/influxdata/kapacitor/issues/117): Add headers to alert POST requests.
 
 ### Bugfixes
 

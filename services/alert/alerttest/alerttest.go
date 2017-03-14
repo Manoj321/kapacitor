@@ -8,9 +8,9 @@ import (
 	"os"
 	"sync"
 
+	"github.com/influxdata/kapacitor/alert"
 	"github.com/influxdata/kapacitor/command"
 	"github.com/influxdata/kapacitor/command/commandtest"
-	alertservice "github.com/influxdata/kapacitor/services/alert"
 )
 
 type Log struct {
@@ -23,16 +23,16 @@ func NewLog(p string) *Log {
 	}
 }
 
-func (l *Log) Data() ([]alertservice.AlertData, error) {
+func (l *Log) Data() ([]alert.AlertData, error) {
 	f, err := os.Open(l.path)
 	if err != nil {
 		return nil, err
 	}
 	defer f.Close()
 	dec := json.NewDecoder(f)
-	var data []alertservice.AlertData
+	var data []alert.AlertData
 	for dec.More() {
-		ad := alertservice.AlertData{}
+		ad := alert.AlertData{}
 		err := dec.Decode(&ad)
 		if err != nil {
 			return nil, err
@@ -72,7 +72,7 @@ type TCPServer struct {
 
 	l *net.TCPListener
 
-	data []alertservice.AlertData
+	data []alert.AlertData
 
 	wg     sync.WaitGroup
 	closed bool
@@ -99,7 +99,7 @@ func NewTCPServer() (*TCPServer, error) {
 	return s, nil
 }
 
-func (s *TCPServer) Data() []alertservice.AlertData {
+func (s *TCPServer) Data() []alert.AlertData {
 	return s.data
 }
 
@@ -120,7 +120,7 @@ func (s *TCPServer) run() {
 		}
 		func() {
 			defer conn.Close()
-			ad := alertservice.AlertData{}
+			ad := alert.AlertData{}
 			json.NewDecoder(conn).Decode(&ad)
 			s.data = append(s.data, ad)
 		}()
@@ -130,14 +130,14 @@ func (s *TCPServer) run() {
 type PostServer struct {
 	ts     *httptest.Server
 	URL    string
-	data   []alertservice.AlertData
+	data   []alert.AlertData
 	closed bool
 }
 
 func NewPostServer() *PostServer {
 	s := new(PostServer)
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		ad := alertservice.AlertData{}
+		ad := alert.AlertData{}
 		dec := json.NewDecoder(r.Body)
 		dec.Decode(&ad)
 		s.data = append(s.data, ad)
@@ -147,7 +147,7 @@ func NewPostServer() *PostServer {
 	return s
 }
 
-func (s *PostServer) Data() []alertservice.AlertData {
+func (s *PostServer) Data() []alert.AlertData {
 	return s.data
 }
 

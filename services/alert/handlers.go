@@ -17,26 +17,13 @@ import (
 	"github.com/influxdata/kapacitor/alert"
 	"github.com/influxdata/kapacitor/bufpool"
 	"github.com/influxdata/kapacitor/command"
-	"github.com/influxdata/kapacitor/models"
 	"github.com/influxdata/kapacitor/tick/ast"
 	"github.com/influxdata/kapacitor/tick/stateful"
 	"github.com/pkg/errors"
 )
 
-// AlertData is a structure that contains relevant data about an alert event.
-// The structure is intended to be JSON encoded, providing a consistent data format.
-type AlertData struct {
-	ID       string        `json:"id"`
-	Message  string        `json:"message"`
-	Details  string        `json:"details"`
-	Time     time.Time     `json:"time"`
-	Duration time.Duration `json:"duration"`
-	Level    alert.Level   `json:"level"`
-	Data     models.Result `json:"data"`
-}
-
-func alertDataFromEvent(event alert.Event) AlertData {
-	return AlertData{
+func alertDataFromEvent(event alert.Event) alert.AlertData {
+	return alert.AlertData{
 		ID:       event.State.ID,
 		Message:  event.State.Message,
 		Details:  event.State.Details,

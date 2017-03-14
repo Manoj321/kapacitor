@@ -31,9 +31,9 @@ import (
 	"github.com/influxdata/kapacitor/command/commandtest"
 	"github.com/influxdata/kapacitor/models"
 	"github.com/influxdata/kapacitor/server"
-	alertservice "github.com/influxdata/kapacitor/services/alert"
 	"github.com/influxdata/kapacitor/services/alert/alerttest"
 	"github.com/influxdata/kapacitor/services/alerta/alertatest"
+	"github.com/influxdata/kapacitor/services/alertpost"
 	"github.com/influxdata/kapacitor/services/hipchat/hipchattest"
 	"github.com/influxdata/kapacitor/services/opsgenie"
 	"github.com/influxdata/kapacitor/services/opsgenie/opsgenietest"
@@ -5488,6 +5488,80 @@ func TestServer_UpdateConfig(t *testing.T) {
 			},
 		},
 		{
+			section: "alertpost",
+			element: "test",
+			setDefaults: func(c *server.Config) {
+				apc := alertpost.Config{
+					Endpoint: "test",
+					URL:      "http://alertpost.example.com",
+				}
+				c.AlertPost = alertpost.Configs{apc}
+			},
+			expDefaultSection: client.ConfigSection{
+				Link: client.Link{Relation: client.Self, Href: "/kapacitor/v1/config/alertpost"},
+				Elements: []client.ConfigElement{
+					{
+						Link: client.Link{Relation: client.Self, Href: "/kapacitor/v1/config/alertpost/test"},
+						Options: map[string]interface{}{
+							"endpoint": "test",
+							"url":      "http://alertpost.example.com",
+							"headers":  false,
+						},
+						Redacted: []string{
+							"headers",
+						}},
+				},
+			},
+			expDefaultElement: client.ConfigElement{
+				Link: client.Link{Relation: client.Self, Href: "/kapacitor/v1/config/alertpost/test"},
+				Options: map[string]interface{}{
+					"endpoint": "test",
+					"url":      "http://alertpost.example.com",
+					"headers":  false,
+				},
+				Redacted: []string{
+					"headers",
+				},
+			},
+			updates: []updateAction{
+				{
+					element: "test",
+					updateAction: client.ConfigUpdateAction{
+						Set: map[string]interface{}{
+							"headers": map[string]string{
+								"Authorization": "works",
+							},
+						},
+					},
+					expSection: client.ConfigSection{
+						Link: client.Link{Relation: client.Self, Href: "/kapacitor/v1/config/alertpost"},
+						Elements: []client.ConfigElement{{
+							Link: client.Link{Relation: client.Self, Href: "/kapacitor/v1/config/alertpost/test"},
+							Options: map[string]interface{}{
+								"endpoint": "test",
+								"url":      "http://alertpost.example.com",
+								"headers":  true,
+							},
+							Redacted: []string{
+								"headers",
+							},
+						}},
+					},
+					expElement: client.ConfigElement{
+						Link: client.Link{Relation: client.Self, Href: "/kapacitor/v1/config/alertpost/test"},
+						Options: map[string]interface{}{
+							"endpoint": "test",
+							"url":      "http://alertpost.example.com",
+							"headers":  true,
+						},
+						Redacted: []string{
+							"headers",
+						},
+					},
+				},
+			},
+		},
+		{
 			section: "pushover",
 			setDefaults: func(c *server.Config) {
 				c.Pushover.URL = "http://pushover.example.com"
@@ -6572,6 +6646,15 @@ func TestServer_ListServiceTests(t *testing.T) {
 				},
 			},
 			{
+				Link: client.Link{Relation: client.Self, Href: "/kapacitor/v1/service-tests/alertpost"},
+				Name: "alertpost",
+				Options: client.ServiceTestOptions{
+					"endpoint": "example",
+					"url":      "http://localhost:3000/",
+					"headers":  map[string]interface{}{"Auth": "secret"},
+				},
+			},
+			{
 				Link: client.Link{Relation: client.Self, Href: "/kapacitor/v1/service-tests/hipchat"},
 				Name: "hipchat",
 				Options: client.ServiceTestOptions{
@@ -7081,7 +7164,7 @@ func TestServer_AlertHandlers(t *testing.T) {
 
 	resultJSON := `{"series":[{"name":"alert","columns":["time","value"],"values":[["1970-01-01T00:00:00Z",1]]}]}`
 
-	alertData := alertservice.AlertData{
+	alertData := alert.AlertData{
 		ID:      "id",
 		Message: "message",
 		Details: "details",
@@ -7247,7 +7330,7 @@ func TestServer_AlertHandlers(t *testing.T) {
 				tdir := ctxt.Value("tdir").(string)
 				defer os.RemoveAll(tdir)
 				l := ctxt.Value("log").(*alerttest.Log)
-				expData := []alertservice.AlertData{alertData}
+				expData := []alert.AlertData{alertData}
 				expMode := os.FileMode(0604)
 
 				m, err := l.Mode()
@@ -7398,7 +7481,7 @@ func TestServer_AlertHandlers(t *testing.T) {
 			result: func(ctxt context.Context) error {
 				ts := ctxt.Value("server").(*alerttest.PostServer)
 				ts.Close()
-				exp := []alertservice.AlertData{alertData}
+				exp := []alert.AlertData{alertData}
 				got := ts.Data()
 				if !reflect.DeepEqual(exp, got) {
 					return fmt.Errorf("unexpected post request:\nexp\n%+v\ngot\n%+v\n", exp, got)
@@ -7649,7 +7732,7 @@ func TestServer_AlertHandlers(t *testing.T) {
 			result: func(ctxt context.Context) error {
 				ts := ctxt.Value("server").(*alerttest.TCPServer)
 				ts.Close()
-				exp := []alertservice.AlertData{alertData}
+				exp := []alert.AlertData{alertData}
 				got := ts.Data()
 				if !reflect.DeepEqual(exp, got) {
 					return fmt.Errorf("unexpected tcp request:\nexp\n%+v\ngot\n%+v\n", exp, got)
@@ -7998,7 +8081,7 @@ alert value=2 0000000000002
 	time.Sleep(110 * time.Millisecond)
 
 	// Check TCP handler got event
-	alertData := alertservice.AlertData{
+	alertData := alert.AlertData{
 		ID:       "id-agg",
 		Message:  "Received 3 events in the last 100ms.",
 		Details:  "message\nmessage\nmessage",
@@ -8035,7 +8118,7 @@ alert value=2 0000000000002
 		},
 	}
 	ts.Close()
-	exp := []alertservice.AlertData{alertData}
+	exp := []alert.AlertData{alertData}
 	got := ts.Data()
 	if !reflect.DeepEqual(exp, got) {
 		t.Errorf("unexpected tcp request:\nexp\n%+v\ngot\n%+v\n", exp, got)
@@ -8143,7 +8226,7 @@ stream
 	s.Restart()
 
 	// Check TCP handler got event
-	alertData := alertservice.AlertData{
+	alertData := alert.AlertData{
 		ID:      "id",
 		Message: "message",
 		Details: "details",
@@ -8163,7 +8246,7 @@ stream
 		},
 	}
 	ts.Close()
-	exp := []alertservice.AlertData{alertData}
+	exp := []alert.AlertData{alertData}
 	got := ts.Data()
 	if !reflect.DeepEqual(exp, got) {
 		t.Errorf("unexpected tcp request:\nexp\n%+v\ngot\n%+v\n", exp, got)
@@ -8263,7 +8346,7 @@ alert,host=serverB value=0 0000000004
 
 	s.Restart()
 
-	alertData := alertservice.AlertData{
+	alertData := alert.AlertData{
 		ID:      "id",
 		Message: "message",
 		Details: "details",
@@ -8284,7 +8367,7 @@ alert,host=serverB value=0 0000000004
 		},
 	}
 	ts.Close()
-	exp := []alertservice.AlertData{alertData}
+	exp := []alert.AlertData{alertData}
 	got := ts.Data()
 	if !reflect.DeepEqual(exp, got) {
 		t.Errorf("unexpected tcp request:\nexp\n%+v\ngot\n%+v\n", exp, got)

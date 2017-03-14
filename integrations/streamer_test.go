@@ -31,6 +31,8 @@ import (
 	"github.com/influxdata/kapacitor/services/alert/alerttest"
 	"github.com/influxdata/kapacitor/services/alerta"
 	"github.com/influxdata/kapacitor/services/alerta/alertatest"
+	"github.com/influxdata/kapacitor/services/alertpost"
+	"github.com/influxdata/kapacitor/services/alertpost/alertposttest"
 	"github.com/influxdata/kapacitor/services/hipchat"
 	"github.com/influxdata/kapacitor/services/hipchat/hipchattest"
 	k8s "github.com/influxdata/kapacitor/services/k8s/client"
@@ -5464,7 +5466,7 @@ stream
 func TestStream_Alert(t *testing.T) {
 	requestCount := int32(0)
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		ad := alertservice.AlertData{}
+		ad := alert.AlertData{}
 		dec := json.NewDecoder(r.Body)
 		err := dec.Decode(&ad)
 		if err != nil {
@@ -5472,7 +5474,7 @@ func TestStream_Alert(t *testing.T) {
 		}
 		atomic.AddInt32(&requestCount, 1)
 		rc := atomic.LoadInt32(&requestCount)
-		expAd := alertservice.AlertData{
+		expAd := alert.AlertData{
 			ID:      "kapacitor/cpu/serverA",
 			Message: "kapacitor/cpu/serverA is CRITICAL",
 			Details: "details",
@@ -5554,7 +5556,7 @@ stream
 func TestStream_Alert_NoRecoveries(t *testing.T) {
 	requestCount := int32(0)
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		ad := alertservice.AlertData{}
+		ad := alert.AlertData{}
 		dec := json.NewDecoder(r.Body)
 		err := dec.Decode(&ad)
 		if err != nil {
@@ -5562,10 +5564,10 @@ func TestStream_Alert_NoRecoveries(t *testing.T) {
 		}
 		atomic.AddInt32(&requestCount, 1)
 		rc := atomic.LoadInt32(&requestCount)
-		var expAd alertservice.AlertData
+		var expAd alert.AlertData
 		switch rc {
 		case 1:
-			expAd = alertservice.AlertData{
+			expAd = alert.AlertData{
 				ID:       "kapacitor/cpu/serverA",
 				Message:  "kapacitor/cpu/serverA is WARNING",
 				Time:     time.Date(1971, 1, 1, 0, 0, 0, 0, time.UTC),
@@ -5586,7 +5588,7 @@ func TestStream_Alert_NoRecoveries(t *testing.T) {
 				},
 			}
 		case 2:
-			expAd = alertservice.AlertData{
+			expAd = alert.AlertData{
 				ID:       "kapacitor/cpu/serverA",
 				Message:  "kapacitor/cpu/serverA is INFO",
 				Time:     time.Date(1971, 1, 1, 0, 0, 2, 0, time.UTC),
@@ -5607,7 +5609,7 @@ func TestStream_Alert_NoRecoveries(t *testing.T) {
 				},
 			}
 		case 3:
-			expAd = alertservice.AlertData{
+			expAd = alert.AlertData{
 				ID:       "kapacitor/cpu/serverA",
 				Message:  "kapacitor/cpu/serverA is WARNING",
 				Time:     time.Date(1971, 1, 1, 0, 0, 3, 0, time.UTC),
@@ -5628,7 +5630,7 @@ func TestStream_Alert_NoRecoveries(t *testing.T) {
 				},
 			}
 		case 4:
-			expAd = alertservice.AlertData{
+			expAd = alert.AlertData{
 				ID:       "kapacitor/cpu/serverA",
 				Message:  "kapacitor/cpu/serverA is WARNING",
 				Time:     time.Date(1971, 1, 1, 0, 0, 4, 0, time.UTC),
@@ -5649,7 +5651,7 @@ func TestStream_Alert_NoRecoveries(t *testing.T) {
 				},
 			}
 		case 5:
-			expAd = alertservice.AlertData{
+			expAd = alert.AlertData{
 				ID:       "kapacitor/cpu/serverA",
 				Message:  "kapacitor/cpu/serverA is CRITICAL",
 				Time:     time.Date(1971, 1, 1, 0, 0, 5, 0, time.UTC),
@@ -5670,7 +5672,7 @@ func TestStream_Alert_NoRecoveries(t *testing.T) {
 				},
 			}
 		case 6:
-			expAd = alertservice.AlertData{
+			expAd = alert.AlertData{
 				ID:       "kapacitor/cpu/serverA",
 				Message:  "kapacitor/cpu/serverA is INFO",
 				Time:     time.Date(1971, 1, 1, 0, 0, 7, 0, time.UTC),
@@ -5741,7 +5743,7 @@ stream
 func TestStream_Alert_WithReset_0(t *testing.T) {
 	requestCount := int32(0)
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		ad := alertservice.AlertData{}
+		ad := alert.AlertData{}
 		dec := json.NewDecoder(r.Body)
 		err := dec.Decode(&ad)
 		if err != nil {
@@ -5749,10 +5751,10 @@ func TestStream_Alert_WithReset_0(t *testing.T) {
 		}
 		atomic.AddInt32(&requestCount, 1)
 		rc := atomic.LoadInt32(&requestCount)
-		var expAd alertservice.AlertData
+		var expAd alert.AlertData
 		switch rc {
 		case 1:
-			expAd = alertservice.AlertData{
+			expAd = alert.AlertData{
 				ID:      "kapacitor/cpu/serverA",
 				Message: "kapacitor/cpu/serverA is INFO",
 				Details: "details",
@@ -5773,7 +5775,7 @@ func TestStream_Alert_WithReset_0(t *testing.T) {
 				},
 			}
 		case 2:
-			expAd = alertservice.AlertData{
+			expAd = alert.AlertData{
 				ID:       "kapacitor/cpu/serverA",
 				Message:  "kapacitor/cpu/serverA is INFO",
 				Details:  "details",
@@ -5795,7 +5797,7 @@ func TestStream_Alert_WithReset_0(t *testing.T) {
 				},
 			}
 		case 3:
-			expAd = alertservice.AlertData{
+			expAd = alert.AlertData{
 				ID:       "kapacitor/cpu/serverA",
 				Message:  "kapacitor/cpu/serverA is INFO",
 				Details:  "details",
@@ -5817,7 +5819,7 @@ func TestStream_Alert_WithReset_0(t *testing.T) {
 				},
 			}
 		case 4:
-			expAd = alertservice.AlertData{
+			expAd = alert.AlertData{
 				ID:       "kapacitor/cpu/serverA",
 				Message:  "kapacitor/cpu/serverA is OK",
 				Details:  "details",
@@ -5839,7 +5841,7 @@ func TestStream_Alert_WithReset_0(t *testing.T) {
 				},
 			}
 		case 5:
-			expAd = alertservice.AlertData{
+			expAd = alert.AlertData{
 				ID:       "kapacitor/cpu/serverA",
 				Message:  "kapacitor/cpu/serverA is INFO",
 				Details:  "details",
@@ -5861,7 +5863,7 @@ func TestStream_Alert_WithReset_0(t *testing.T) {
 				},
 			}
 		case 6:
-			expAd = alertservice.AlertData{
+			expAd = alert.AlertData{
 				ID:       "kapacitor/cpu/serverA",
 				Message:  "kapacitor/cpu/serverA is WARNING",
 				Details:  "details",
@@ -5883,7 +5885,7 @@ func TestStream_Alert_WithReset_0(t *testing.T) {
 				},
 			}
 		case 7:
-			expAd = alertservice.AlertData{
+			expAd = alert.AlertData{
 				ID:       "kapacitor/cpu/serverA",
 				Message:  "kapacitor/cpu/serverA is WARNING",
 				Details:  "details",
@@ -5905,7 +5907,7 @@ func TestStream_Alert_WithReset_0(t *testing.T) {
 				},
 			}
 		case 8:
-			expAd = alertservice.AlertData{
+			expAd = alert.AlertData{
 				ID:       "kapacitor/cpu/serverA",
 				Message:  "kapacitor/cpu/serverA is OK",
 				Details:  "details",
@@ -5927,7 +5929,7 @@ func TestStream_Alert_WithReset_0(t *testing.T) {
 				},
 			}
 		case 9:
-			expAd = alertservice.AlertData{
+			expAd = alert.AlertData{
 				ID:       "kapacitor/cpu/serverA",
 				Message:  "kapacitor/cpu/serverA is INFO",
 				Details:  "details",
@@ -5949,7 +5951,7 @@ func TestStream_Alert_WithReset_0(t *testing.T) {
 				},
 			}
 		case 10:
-			expAd = alertservice.AlertData{
+			expAd = alert.AlertData{
 				ID:       "kapacitor/cpu/serverA",
 				Message:  "kapacitor/cpu/serverA is WARNING",
 				Details:  "details",
@@ -5971,7 +5973,7 @@ func TestStream_Alert_WithReset_0(t *testing.T) {
 				},
 			}
 		case 11:
-			expAd = alertservice.AlertData{
+			expAd = alert.AlertData{
 				ID:       "kapacitor/cpu/serverA",
 				Message:  "kapacitor/cpu/serverA is CRITICAL",
 				Details:  "details",
@@ -5993,7 +5995,7 @@ func TestStream_Alert_WithReset_0(t *testing.T) {
 				},
 			}
 		case 12:
-			expAd = alertservice.AlertData{
+			expAd = alert.AlertData{
 				ID:       "kapacitor/cpu/serverA",
 				Message:  "kapacitor/cpu/serverA is OK",
 				Details:  "details",
@@ -6079,7 +6081,7 @@ stream
 func TestStream_Alert_WithReset_1(t *testing.T) {
 	requestCount := int32(0)
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		ad := alertservice.AlertData{}
+		ad := alert.AlertData{}
 		dec := json.NewDecoder(r.Body)
 		err := dec.Decode(&ad)
 		if err != nil {
@@ -6087,10 +6089,10 @@ func TestStream_Alert_WithReset_1(t *testing.T) {
 		}
 		atomic.AddInt32(&requestCount, 1)
 		rc := atomic.LoadInt32(&requestCount)
-		var expAd alertservice.AlertData
+		var expAd alert.AlertData
 		switch rc {
 		case 1:
-			expAd = alertservice.AlertData{
+			expAd = alert.AlertData{
 				ID:      "kapacitor/cpu/serverA",
 				Message: "kapacitor/cpu/serverA is INFO",
 				Details: "details",
@@ -6111,7 +6113,7 @@ func TestStream_Alert_WithReset_1(t *testing.T) {
 				},
 			}
 		case 2:
-			expAd = alertservice.AlertData{
+			expAd = alert.AlertData{
 				ID:       "kapacitor/cpu/serverA",
 				Message:  "kapacitor/cpu/serverA is INFO",
 				Details:  "details",
@@ -6133,7 +6135,7 @@ func TestStream_Alert_WithReset_1(t *testing.T) {
 				},
 			}
 		case 3:
-			expAd = alertservice.AlertData{
+			expAd = alert.AlertData{
 				ID:       "kapacitor/cpu/serverA",
 				Message:  "kapacitor/cpu/serverA is INFO",
 				Details:  "details",
@@ -6155,7 +6157,7 @@ func TestStream_Alert_WithReset_1(t *testing.T) {
 				},
 			}
 		case 4:
-			expAd = alertservice.AlertData{
+			expAd = alert.AlertData{
 				ID:       "kapacitor/cpu/serverA",
 				Message:  "kapacitor/cpu/serverA is OK",
 				Details:  "details",
@@ -6177,7 +6179,7 @@ func TestStream_Alert_WithReset_1(t *testing.T) {
 				},
 			}
 		case 5:
-			expAd = alertservice.AlertData{
+			expAd = alert.AlertData{
 				ID:       "kapacitor/cpu/serverA",
 				Message:  "kapacitor/cpu/serverA is INFO",
 				Details:  "details",
@@ -6199,7 +6201,7 @@ func TestStream_Alert_WithReset_1(t *testing.T) {
 				},
 			}
 		case 6:
-			expAd = alertservice.AlertData{
+			expAd = alert.AlertData{
 				ID:       "kapacitor/cpu/serverA",
 				Message:  "kapacitor/cpu/serverA is WARNING",
 				Details:  "details",
@@ -6221,7 +6223,7 @@ func TestStream_Alert_WithReset_1(t *testing.T) {
 				},
 			}
 		case 7:
-			expAd = alertservice.AlertData{
+			expAd = alert.AlertData{
 				ID:       "kapacitor/cpu/serverA",
 				Message:  "kapacitor/cpu/serverA is INFO",
 				Details:  "details",
@@ -6243,7 +6245,7 @@ func TestStream_Alert_WithReset_1(t *testing.T) {
 				},
 			}
 		case 8:
-			expAd = alertservice.AlertData{
+			expAd = alert.AlertData{
 				ID:       "kapacitor/cpu/serverA",
 				Message:  "kapacitor/cpu/serverA is OK",
 				Details:  "details",
@@ -6265,7 +6267,7 @@ func TestStream_Alert_WithReset_1(t *testing.T) {
 				},
 			}
 		case 9:
-			expAd = alertservice.AlertData{
+			expAd = alert.AlertData{
 				ID:       "kapacitor/cpu/serverA",
 				Message:  "kapacitor/cpu/serverA is INFO",
 				Details:  "details",
@@ -6287,7 +6289,7 @@ func TestStream_Alert_WithReset_1(t *testing.T) {
 				},
 			}
 		case 10:
-			expAd = alertservice.AlertData{
+			expAd = alert.AlertData{
 				ID:       "kapacitor/cpu/serverA",
 				Message:  "kapacitor/cpu/serverA is WARNING",
 				Details:  "details",
@@ -6309,7 +6311,7 @@ func TestStream_Alert_WithReset_1(t *testing.T) {
 				},
 			}
 		case 11:
-			expAd = alertservice.AlertData{
+			expAd = alert.AlertData{
 				ID:       "kapacitor/cpu/serverA",
 				Message:  "kapacitor/cpu/serverA is CRITICAL",
 				Details:  "details",
@@ -6331,7 +6333,7 @@ func TestStream_Alert_WithReset_1(t *testing.T) {
 				},
 			}
 		case 12:
-			expAd = alertservice.AlertData{
+			expAd = alert.AlertData{
 				ID:       "kapacitor/cpu/serverA",
 				Message:  "kapacitor/cpu/serverA is WARNING",
 				Details:  "details",
@@ -6353,7 +6355,7 @@ func TestStream_Alert_WithReset_1(t *testing.T) {
 				},
 			}
 		case 13:
-			expAd = alertservice.AlertData{
+			expAd = alert.AlertData{
 				ID:       "kapacitor/cpu/serverA",
 				Message:  "kapacitor/cpu/serverA is WARNING",
 				Details:  "details",
@@ -6375,7 +6377,7 @@ func TestStream_Alert_WithReset_1(t *testing.T) {
 				},
 			}
 		case 14:
-			expAd = alertservice.AlertData{
+			expAd = alert.AlertData{
 				ID:       "kapacitor/cpu/serverA",
 				Message:  "kapacitor/cpu/serverA is INFO",
 				Details:  "details",
@@ -6397,7 +6399,7 @@ func TestStream_Alert_WithReset_1(t *testing.T) {
 				},
 			}
 		case 15:
-			expAd = alertservice.AlertData{
+			expAd = alert.AlertData{
 				ID:       "kapacitor/cpu/serverA",
 				Message:  "kapacitor/cpu/serverA is OK",
 				Details:  "details",
@@ -6483,18 +6485,18 @@ stream
 func TestStream_AlertDuration(t *testing.T) {
 	requestCount := int32(0)
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		ad := alertservice.AlertData{}
+		ad := alert.AlertData{}
 		dec := json.NewDecoder(r.Body)
 		err := dec.Decode(&ad)
 		if err != nil {
 			t.Fatal(err)
 		}
 		atomic.AddInt32(&requestCount, 1)
-		var expAd alertservice.AlertData
+		var expAd alert.AlertData
 		rc := atomic.LoadInt32(&requestCount)
 		switch rc {
 		case 1:
-			expAd = alertservice.AlertData{
+			expAd = alert.AlertData{
 				ID:       "kapacitor/cpu/serverA",
 				Message:  "kapacitor/cpu/serverA is CRITICAL",
 				Details:  "details",
@@ -6516,7 +6518,7 @@ func TestStream_AlertDuration(t *testing.T) {
 				},
 			}
 		case 2:
-			expAd = alertservice.AlertData{
+			expAd = alert.AlertData{
 				ID:       "kapacitor/cpu/serverA",
 				Message:  "kapacitor/cpu/serverA is WARNING",
 				Details:  "details",
@@ -6538,7 +6540,7 @@ func TestStream_AlertDuration(t *testing.T) {
 				},
 			}
 		case 3:
-			expAd = alertservice.AlertData{
+			expAd = alert.AlertData{
 				ID:       "kapacitor/cpu/serverA",
 				Message:  "kapacitor/cpu/serverA is OK",
 				Details:  "details",
@@ -6560,7 +6562,7 @@ func TestStream_AlertDuration(t *testing.T) {
 				},
 			}
 		case 4:
-			expAd = alertservice.AlertData{
+			expAd = alert.AlertData{
 				ID:       "kapacitor/cpu/serverA",
 				Message:  "kapacitor/cpu/serverA is WARNING",
 				Details:  "details",
@@ -6582,7 +6584,7 @@ func TestStream_AlertDuration(t *testing.T) {
 				},
 			}
 		case 5:
-			expAd = alertservice.AlertData{
+			expAd = alert.AlertData{
 				ID:       "kapacitor/cpu/serverA",
 				Message:  "kapacitor/cpu/serverA is OK",
 				Details:  "details",
@@ -6892,7 +6894,7 @@ stream
 	testStreamerNoOutput(t, "TestStream_Alert", script, 13*time.Second, nil)
 
 	exp := []interface{}{
-		alertservice.AlertData{
+		alert.AlertData{
 			ID:      "kapacitor.cpu.serverA",
 			Message: "kapacitor.cpu.serverA is CRITICAL",
 			Time:    time.Date(1971, 1, 1, 0, 0, 10, 0, time.UTC),
@@ -7155,7 +7157,6 @@ stream
 		t.Error(err)
 	}
 }
-
 func TestStream_AlertOpsGenie(t *testing.T) {
 	ts := opsgenietest.NewServer()
 	defer ts.Close()
@@ -7317,7 +7318,7 @@ stream
 }
 
 func TestStream_AlertPost(t *testing.T) {
-	ts := alerttest.NewPostServer()
+	ts := alertposttest.NewServer(nil)
 	defer ts.Close()
 
 	var script = `
@@ -7342,21 +7343,94 @@ stream
 	testStreamerNoOutput(t, "TestStream_Alert", script, 13*time.Second, nil)
 
 	exp := []interface{}{
-		alertservice.AlertData{
-			ID:      "kapacitor.cpu.serverA",
-			Message: "kapacitor.cpu.serverA is CRITICAL",
-			Time:    time.Date(1971, 1, 1, 0, 0, 10, 0, time.UTC),
-			Level:   alert.Critical,
-			Data: models.Result{
-				Series: models.Rows{
-					{
-						Name:    "cpu",
-						Tags:    map[string]string{"host": "serverA"},
-						Columns: []string{"time", "count"},
-						Values: [][]interface{}{[]interface{}{
-							time.Date(1971, 1, 1, 0, 0, 10, 0, time.UTC),
-							10.0,
-						}},
+		alertposttest.Request{
+			MatchingHeaders: true,
+			Data: alert.AlertData{
+				ID:      "kapacitor.cpu.serverA",
+				Message: "kapacitor.cpu.serverA is CRITICAL",
+				Time:    time.Date(1971, 1, 1, 0, 0, 10, 0, time.UTC),
+				Level:   alert.Critical,
+				Data: models.Result{
+					Series: models.Rows{
+						{
+							Name:    "cpu",
+							Tags:    map[string]string{"host": "serverA"},
+							Columns: []string{"time", "count"},
+							Values: [][]interface{}{[]interface{}{
+								time.Date(1971, 1, 1, 0, 0, 10, 0, time.UTC),
+								10.0,
+							}},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	ts.Close()
+	var got []interface{}
+	for _, g := range ts.Data() {
+		got = append(got, g)
+	}
+
+	if err := compareListIgnoreOrder(got, exp, nil); err != nil {
+		t.Error(err)
+	}
+}
+
+func TestStream_AlertPostEndpoint(t *testing.T) {
+	headers := map[string]string{"Authorization": "works"}
+	ts := alertposttest.NewServer(headers)
+	defer ts.Close()
+
+	var script = `
+stream
+	|from()
+		.measurement('cpu')
+		.where(lambda: "host" == 'serverA')
+		.groupBy('host')
+	|window()
+		.period(10s)
+		.every(10s)
+	|count('value')
+	|alert()
+		.id('kapacitor.{{ .Name }}.{{ index .Tags "host" }}')
+		.info(lambda: "count" > 6.0)
+		.warn(lambda: "count" > 7.0)
+		.crit(lambda: "count" > 8.0)
+		.details('')
+		.post()
+		 .endpoint('test')
+`
+	tmInit := func(tm *kapacitor.TaskMaster) {
+		c := alertpost.Config{}
+		c.URL = ts.URL
+		c.Endpoint = "test"
+		c.Headers = headers
+		sl := alertpost.NewService(alertpost.Configs{c}, logService.NewLogger("[test_pushover] ", log.LstdFlags))
+		tm.AlertPostService = sl
+	}
+	testStreamerNoOutput(t, "TestStream_Alert", script, 13*time.Second, tmInit)
+
+	exp := []interface{}{
+		alertposttest.Request{
+			MatchingHeaders: true,
+			Data: alert.AlertData{
+				ID:      "kapacitor.cpu.serverA",
+				Message: "kapacitor.cpu.serverA is CRITICAL",
+				Time:    time.Date(1971, 1, 1, 0, 0, 10, 0, time.UTC),
+				Level:   alert.Critical,
+				Data: models.Result{
+					Series: models.Rows{
+						{
+							Name:    "cpu",
+							Tags:    map[string]string{"host": "serverA"},
+							Columns: []string{"time", "count"},
+							Values: [][]interface{}{[]interface{}{
+								time.Date(1971, 1, 1, 0, 0, 10, 0, time.UTC),
+								10.0,
+							}},
+						},
 					},
 				},
 			},
@@ -7533,7 +7607,7 @@ stream
 			.mode(0644)
 `, normalPath, modePath)
 
-	expAD := []alertservice.AlertData{{
+	expAD := []alert.AlertData{{
 		ID:      "kapacitor.cpu.serverA",
 		Message: "kapacitor.cpu.serverA is CRITICAL",
 		Time:    time.Date(1971, 01, 01, 0, 0, 10, 0, time.UTC),
@@ -7555,7 +7629,7 @@ stream
 
 	testStreamerNoOutput(t, "TestStream_Alert", script, 13*time.Second, nil)
 
-	testLog := func(name string, expData []alertservice.AlertData, expMode os.FileMode, l *alerttest.Log) error {
+	testLog := func(name string, expData []alert.AlertData, expMode os.FileMode, l *alerttest.Log) error {
 		m, err := l.Mode()
 		if err != nil {
 			return err
@@ -7603,7 +7677,7 @@ stream
 		.exec('/bin/my-other-script')
 `
 
-	expAD := alertservice.AlertData{
+	expAD := alert.AlertData{
 		ID:      "kapacitor.cpu.serverA",
 		Message: "kapacitor.cpu.serverA is CRITICAL",
 		Time:    time.Date(1971, 01, 01, 0, 0, 10, 0, time.UTC),
@@ -7905,17 +7979,17 @@ stream
 func TestStream_AlertSigma(t *testing.T) {
 	requestCount := int32(0)
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		ad := alertservice.AlertData{}
+		ad := alert.AlertData{}
 		dec := json.NewDecoder(r.Body)
 		err := dec.Decode(&ad)
 		if err != nil {
 			t.Fatal(err)
 		}
-		var expAd alertservice.AlertData
+		var expAd alert.AlertData
 		atomic.AddInt32(&requestCount, 1)
 		rc := atomic.LoadInt32(&requestCount)
 		if rc := atomic.LoadInt32(&requestCount); rc == 1 {
-			expAd = alertservice.AlertData{
+			expAd = alert.AlertData{
 				ID:      "cpu:nil",
 				Message: "cpu:nil is INFO",
 				Details: "cpu:nil is INFO",
@@ -7937,7 +8011,7 @@ func TestStream_AlertSigma(t *testing.T) {
 				},
 			}
 		} else {
-			expAd = alertservice.AlertData{
+			expAd = alert.AlertData{
 				ID:       "cpu:nil",
 				Message:  "cpu:nil is OK",
 				Details:  "cpu:nil is OK",
@@ -7993,14 +8067,14 @@ func TestStream_AlertComplexWhere(t *testing.T) {
 
 	requestCount := int32(0)
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		ad := alertservice.AlertData{}
+		ad := alert.AlertData{}
 		dec := json.NewDecoder(r.Body)
 		err := dec.Decode(&ad)
 		if err != nil {
 			t.Fatal(err)
 		}
 		atomic.AddInt32(&requestCount, 1)
-		expAd := alertservice.AlertData{
+		expAd := alert.AlertData{
 			ID:      "cpu:nil",
 			Message: "cpu:nil is CRITICAL",
 			Details: "",
@@ -8072,7 +8146,7 @@ func TestStream_AlertStateChangesOnlyExpired(t *testing.T) {
 
 	requestCount := int32(0)
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		ad := alertservice.AlertData{}
+		ad := alert.AlertData{}
 		dec := json.NewDecoder(r.Body)
 		err := dec.Decode(&ad)
 		if err != nil {
@@ -8080,11 +8154,11 @@ func TestStream_AlertStateChangesOnlyExpired(t *testing.T) {
 		}
 		//We don't care about the data for this test
 		ad.Data = models.Result{}
-		var expAd alertservice.AlertData
+		var expAd alert.AlertData
 		atomic.AddInt32(&requestCount, 1)
 		rc := atomic.LoadInt32(&requestCount)
 		if rc < 6 {
-			expAd = alertservice.AlertData{
+			expAd = alert.AlertData{
 				ID:       "cpu:nil",
 				Message:  "cpu:nil is CRITICAL",
 				Time:     time.Date(1971, 1, 1, 0, 0, int(rc)*2-1, 0, time.UTC),
@@ -8092,7 +8166,7 @@ func TestStream_AlertStateChangesOnlyExpired(t *testing.T) {
 				Level:    alert.Critical,
 			}
 		} else {
-			expAd = alertservice.AlertData{
+			expAd = alert.AlertData{
 				ID:       "cpu:nil",
 				Message:  "cpu:nil is OK",
 				Time:     time.Date(1971, 1, 1, 0, 0, 10, 0, time.UTC),
@@ -9564,6 +9638,7 @@ func testStreamer(
 	tm.HTTPDService = httpdService
 	tm.TaskStore = taskStore{}
 	tm.DeadmanService = deadman{}
+	tm.AlertPostService = alertpost.NewService(nil, logService.NewLogger("[alertpost] ", log.LstdFlags))
 	as := alertservice.NewService(logService.NewLogger("[alert] ", log.LstdFlags))
 	as.StorageService = storagetest.New()
 	as.HTTPDService = httpdService

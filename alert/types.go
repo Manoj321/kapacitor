@@ -154,3 +154,15 @@ type TopicState struct {
 	Level     Level
 	Collected int64
 }
+
+// AlertData is a structure that contains relevant data about an alert event.
+// The structure is intended to be JSON encoded, providing a consistent data format.
+type AlertData struct {
+	ID       string        `json:"id"`
+	Message  string        `json:"message"`
+	Details  string        `json:"details"`
+	Time     time.Time     `json:"time"`
+	Duration time.Duration `json:"duration"`
+	Level    Level         `json:"level"`
+	Data     models.Result `json:"data"`
+}
