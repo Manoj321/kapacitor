@@ -13,7 +13,7 @@ type EvalReferenceNode struct {
 }
 
 // getReferenceValue - core method for evaluating function where all NodeEvaluator methods should use
-func (n *EvalReferenceNode) getReferenceValue(scope *Scope, executionState ExecutionState) (interface{}, error) {
+func (n *EvalReferenceNode) getReferenceValue(scope *Scope) (interface{}, error) {
 	value, err := scope.Get(n.Node.Reference)
 	if err != nil {
 		return nil, err
@@ -25,8 +25,8 @@ func (n *EvalReferenceNode) getReferenceValue(scope *Scope, executionState Execu
 	return value, nil
 }
 
-func (n *EvalReferenceNode) Type(scope ReadOnlyScope, executionState ExecutionState) (ast.ValueType, error) {
-	value, err := n.getReferenceValue(scope.(*Scope), executionState)
+func (n *EvalReferenceNode) Type(scope ReadOnlyScope) (ast.ValueType, error) {
+	value, err := n.getReferenceValue(scope.(*Scope))
 	if err != nil {
 		return ast.InvalidType, err
 	}
@@ -39,7 +39,7 @@ func (n *EvalReferenceNode) IsDynamic() bool {
 }
 
 func (n *EvalReferenceNode) EvalRegex(scope *Scope, executionState ExecutionState) (*regexp.Regexp, error) {
-	refValue, err := n.getReferenceValue(scope, executionState)
+	refValue, err := n.getReferenceValue(scope)
 	if err != nil {
 		return nil, err
 	}
@@ -52,7 +52,7 @@ func (n *EvalReferenceNode) EvalRegex(scope *Scope, executionState ExecutionStat
 }
 
 func (n *EvalReferenceNode) EvalTime(scope *Scope, executionState ExecutionState) (time.Time, error) {
-	refValue, err := n.getReferenceValue(scope, executionState)
+	refValue, err := n.getReferenceValue(scope)
 	if err != nil {
 		return time.Time{}, err
 	}
@@ -65,7 +65,7 @@ func (n *EvalReferenceNode) EvalTime(scope *Scope, executionState ExecutionState
 }
 
 func (n *EvalReferenceNode) EvalDuration(scope *Scope, executionState ExecutionState) (time.Duration, error) {
-	refValue, err := n.getReferenceValue(scope, executionState)
+	refValue, err := n.getReferenceValue(scope)
 	if err != nil {
 		return 0, err
 	}
@@ -78,7 +78,7 @@ func (n *EvalReferenceNode) EvalDuration(scope *Scope, executionState ExecutionS
 }
 
 func (n *EvalReferenceNode) EvalString(scope *Scope, executionState ExecutionState) (string, error) {
-	refValue, err := n.getReferenceValue(scope, executionState)
+	refValue, err := n.getReferenceValue(scope)
 	if err != nil {
 		return "", err
 	}
@@ -91,7 +91,7 @@ func (n *EvalReferenceNode) EvalString(scope *Scope, executionState ExecutionSta
 }
 
 func (n *EvalReferenceNode) EvalFloat(scope *Scope, executionState ExecutionState) (float64, error) {
-	refValue, err := n.getReferenceValue(scope, executionState)
+	refValue, err := n.getReferenceValue(scope)
 	if err != nil {
 		return float64(0), err
 	}
@@ -104,7 +104,7 @@ func (n *EvalReferenceNode) EvalFloat(scope *Scope, executionState ExecutionStat
 }
 
 func (n *EvalReferenceNode) EvalInt(scope *Scope, executionState ExecutionState) (int64, error) {
-	refValue, err := n.getReferenceValue(scope, executionState)
+	refValue, err := n.getReferenceValue(scope)
 	if err != nil {
 		return int64(0), err
 	}
@@ -117,7 +117,7 @@ func (n *EvalReferenceNode) EvalInt(scope *Scope, executionState ExecutionState)
 }
 
 func (n *EvalReferenceNode) EvalBool(scope *Scope, executionState ExecutionState) (bool, error) {
-	refValue, err := n.getReferenceValue(scope, executionState)
+	refValue, err := n.getReferenceValue(scope)
 	if err != nil {
 		return false, err
 	}
@@ -127,4 +127,18 @@ func (n *EvalReferenceNode) EvalBool(scope *Scope, executionState ExecutionState
 	}
 
 	return false, ErrTypeGuardFailed{RequestedType: ast.TBool, ActualType: ast.TypeOf(refValue)}
+}
+
+func (n *EvalReferenceNode) EvalMissing(scope *Scope, executionState ExecutionState) (*ast.Missing, error) {
+	refValue, err := n.getReferenceValue(scope)
+	if err != nil {
+		return nil, err
+	}
+
+	if missingVal, isMissing := refValue.(*ast.Missing); isMissing {
+		//  This error gets checked in the eval method of a function node
+		return missingVal, fmt.Errorf("missing value: \"%v\"", n.Node.Reference)
+	}
+
+	return nil, ErrTypeGuardFailed{RequestedType: ast.TMissing, ActualType: ast.TypeOf(refValue)}
 }
